@@ -1,0 +1,29 @@
+while True:
+    try:
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((server_ip, server_port))
+        print("已连接到服务器")
+        cap = cv2.VideoCapture(0)
+        while True:
+            try:
+                command = client_socket.recv(1024).decode()
+                if command == "open camera":
+                    while True:
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
+                        _, buffer = cv2.imencode('.jpg', frame)
+                        frame_data = buffer.tobytes()
+                        frame_size = len(frame_data)
+                        client_socket.sendall(str(frame_size).ljust(16).encode())
+                        client_socket.sendall(frame_data)
+                elif command == "exit":
+                    break
+            except (ConnectionRefusedError, ConnectionResetError):
+                print("连接已丢失，正在尝试重新连接...")
+                break
+        cap.release()
+        client_socket.close()
+    except (ConnectionRefusedError, ConnectionResetError):
+        print("连接失败")
+        time.sleep(1)
